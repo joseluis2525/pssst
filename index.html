@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#000000">
-    <title>Panama Joe - ZX Spectrum</title>
+    <title>Pssst - ZX Spectrum</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         html, body {
@@ -23,19 +23,19 @@
         /* ============ CABECERA ============ */
         #game-header {
             text-align: center; padding: 4px 8px;
-            background: #111; border-bottom: 2px solid #f0c040;
+            background: #111; border-bottom: 2px solid #4caf50;
             display: flex; align-items: center; gap: 5px;
             flex-shrink: 0;
             z-index: 100;
         }
-        #game-header h1 { font-size: 0.9em; color: #f0c040; margin: 0; white-space: nowrap; }
+        #game-header h1 { font-size: 0.9em; color: #4caf50; margin: 0; white-space: nowrap; }
         #status { font-size: 0.6em; color: #aaa; flex: 1; text-align: center; }
         .hdr-btn {
-            background: #333; border: 1px solid #f0c040; border-radius: 5px;
-            color: #f0c040; padding: 5px 10px; font-size: 0.7em; cursor: pointer;
+            background: #333; border: 1px solid #4caf50; border-radius: 5px;
+            color: #4caf50; padding: 5px 10px; font-size: 0.7em; cursor: pointer;
             user-select: none; flex-shrink: 0; white-space: nowrap;
         }
-        .hdr-btn:active { background: #f0c040; color: #000; }
+        .hdr-btn:active { background: #4caf50; color: #000; }
 
         /* ============ EMULADOR ============ */
         #emulator-container {
@@ -147,29 +147,28 @@
 
             #game-header { display: none !important; }
 
-            /* Emulador a pantalla completa */
             #emulator-container {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100dvh !important;
-    z-index: 1 !important;
-    padding: 0 !important;
-}
-           #jsspeccy {
-    width: 100vw !important;
-    height: 100dvh !important;
-    display: block !important;
-}
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100dvh !important;
+                z-index: 1 !important;
+                padding: 0 !important;
+            }
+            #jsspeccy {
+                width: 100vw !important;
+                height: 100dvh !important;
+                display: block !important;
+            }
             #jsspeccy canvas {
-    width: 100vw !important;
-    height: 100dvh !important;
-    max-width: none !important;
-    max-height: none !important;
-    object-fit: contain;
-    display: block;
-}
+                width: 100vw !important;
+                height: 100dvh !important;
+                max-width: none !important;
+                max-height: none !important;
+                object-fit: contain;
+                display: block;
+            }
 
             #jsspeccy > div > div:first-child,
             #jsspeccy > div > div:last-child,
@@ -179,13 +178,12 @@
                 display: none !important;
             }
 
-            /* Gamepad-area pasa a ser capa transparente SIN pointer-events:none */
             #gamepad-area {
                 position: fixed !important;
                 top: 0 !important;
                 left: 0 !important;
                 width: 100vw !important;
-                height: 100vh !important;
+                height: 100dvh !important;
                 background: transparent !important;
                 border: none !important;
                 padding: 0 !important;
@@ -193,16 +191,13 @@
                 display: block !important;
             }
 
-            /* ============================================
-               CONTROLES IZQUIERDOS: ← → + ACCION
-               ============================================ */
             .controls-left {
                 position: fixed !important;
                 left: 1.5vw !important;
                 top: 0 !important;
                 bottom: 0 !important;
                 width: auto !important;
-                height: 100vh !important;
+                height: 100dvh !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: center !important;
@@ -212,9 +207,6 @@
                 pointer-events: auto !important;
             }
 
-            /* ============================================
-               CONTROLES DERECHOS: ↑ ↓ + ACCION
-               ============================================ */
             .controls-right {
                 position: fixed !important;
                 right: 1.5vw !important;
@@ -222,7 +214,7 @@
                 top: 0 !important;
                 bottom: 0 !important;
                 width: auto !important;
-                height: 100vh !important;
+                height: 100dvh !important;
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: center !important;
@@ -232,9 +224,6 @@
                 pointer-events: auto !important;
             }
 
-            /* ============================================
-               TAMAÑOS LANDSCAPE — min(vw, px)
-               ============================================ */
             .pill-horizontal .btn-half,
             .pill-vertical .btn-half {
                 width: min(9vw, 70px) !important;
@@ -245,7 +234,6 @@
                 height: min(11vw, 85px) !important;
             }
 
-            /* Botón "4" arriba-derecha */
             #btn-config {
                 position: fixed !important;
                 left: auto !important;
@@ -266,7 +254,7 @@
     <div id="app">
 
         <div id="game-header">
-            <h1>🕹️ Panama Joe</h1>
+            <h1>🐛 Pssst</h1>
             <div id="status">Iniciando...</div>
             <label for="manual-load" class="hdr-btn">ROM</label>
             <input type="file" id="manual-load" accept=".tap" style="display:none;">
@@ -280,21 +268,26 @@
 
             <div class="controls-left">
                 <div class="pill-horizontal">
-                    <div id="btn-left"  class="btn-half" data-key="7"></div>
-                    <div id="btn-right" class="btn-half" data-key="9"></div>
+                    <!-- data-key: Q (izquierda) y W (derecha) -->
+                    <div id="btn-left"  class="btn-half" data-key="q"></div>
+                    <div id="btn-right" class="btn-half" data-key="w"></div>
                 </div>
-                <div id="btn-disp-left" class="btn-action-round" data-key="Space"></div>
+                <!-- ACCION: T (disparar spray) -->
+                <div id="btn-disp-left" class="btn-action-round" data-key="t"></div>
             </div>
 
             <div class="controls-right">
                 <div class="pill-vertical">
-                    <div id="btn-up"   class="btn-half" data-key="6"></div>
-                    <div id="btn-down" class="btn-half" data-key="8"></div>
+                    <!-- data-key: E (arriba) y R (abajo) -->
+                    <div id="btn-up"   class="btn-half" data-key="e"></div>
+                    <div id="btn-down" class="btn-half" data-key="r"></div>
                 </div>
-                <div id="btn-disp-right" class="btn-action-round" data-key="Space"></div>
+                <!-- ACCION: T (disparar spray) -->
+                <div id="btn-disp-right" class="btn-action-round" data-key="t"></div>
             </div>
 
-            <div id="btn-config" data-key="4"></div>
+            <!-- Botón PAUSA: Caps Shift -->
+            <div id="btn-config" data-key="CapsShift"></div>
 
         </div>
 
@@ -345,7 +338,6 @@
                 }
             }
 
-            // Fuerza repintado (necesario en Chrome/Firefox al rotar)
             function forceReflow() {
                 const app = document.getElementById('app');
                 const prev = app.style.display;
@@ -393,21 +385,21 @@
             }
 
             function autoLoadROM() {
-                setStatus('Cargando Panama Joe...');
-                fetch('panamajoe.tap?t=' + Date.now())
+                setStatus('Cargando Pssst...');
+                fetch('pssst.tap?t=' + Date.now())
                     .then(r => {
                         if (!r.ok) throw new Error('HTTP ' + r.status);
                         return r.blob();
                     })
                     .then(blob => {
-                        const file = new File([blob], 'panamajoe.tap');
+                        const file = new File([blob], 'pssst.tap');
                         forceLoadFile(file);
                         tapeLoaded = true;
-                        setStatus('✅ Cargando... espera 1-2 minutos');
+                        setStatus('✅ Cargando... espera 30-60 segundos');
                     })
                     .catch(err => {
                         console.error(err);
-                        setStatus('❌ Error. Usa ROM.');
+                        setStatus('❌ Error. Usa ROM manual.');
                     });
             }
 
@@ -432,30 +424,40 @@
                 tapeLoaded = true;
             });
 
+            // ============================================================
+            // MAPEO DE TECLAS DE PSSST
+            // Q = izquierda, W = derecha, E = arriba, R = abajo, T = disparar
+            // Caps Shift = pausa
+            // ============================================================
             const keyMap = {
-                '1':'1', '2':'2', '3':'3', '4':'4', '5':'5',
-                '6':'6', '7':'7', '8':'8', '9':'9',
-                'Space':' ', 'Enter':'Enter'
+                'q': { key: 'q', code: 'KeyQ', keyCode: 81 },
+                'w': { key: 'w', code: 'KeyW', keyCode: 87 },
+                'e': { key: 'e', code: 'KeyE', keyCode: 69 },
+                'r': { key: 'r', code: 'KeyR', keyCode: 82 },
+                't': { key: 't', code: 'KeyT', keyCode: 84 },
+                'CapsShift': { key: 'Shift', code: 'ShiftLeft', keyCode: 16 },
+                'Enter': { key: 'Enter', code: 'Enter', keyCode: 13 },
+                'Space': { key: ' ', code: 'Space', keyCode: 32 }
             };
 
-            function sendKey(key, isDown) {
+            function sendKey(keyName, isDown) {
                 const canvas = getCanvas();
                 if (!canvas) return;
                 canvas.focus();
-                const actualKey = keyMap[key] || key;
-                let keyCode = actualKey.charCodeAt(0);
-                if (key === 'Enter') keyCode = 13;
-                if (key === 'Space') keyCode = 32;
+
+                const info = keyMap[keyName] || { key: keyName, code: 'Key' + keyName.toUpperCase(), keyCode: keyName.charCodeAt(0) };
 
                 const eventType = isDown ? 'keydown' : 'keyup';
                 const event = new KeyboardEvent(eventType, {
-                    key: actualKey,
-                    code: 'Key' + actualKey.toUpperCase(),
-                    keyCode: keyCode, which: keyCode,
-                    bubbles: true, cancelable: true
+                    key: info.key,
+                    code: info.code,
+                    keyCode: info.keyCode,
+                    which: info.keyCode,
+                    bubbles: true,
+                    cancelable: true
                 });
-                Object.defineProperty(event, 'keyCode', { get: () => keyCode });
-                Object.defineProperty(event, 'which', { get: () => keyCode });
+                Object.defineProperty(event, 'keyCode', { get: () => info.keyCode });
+                Object.defineProperty(event, 'which', { get: () => info.keyCode });
                 canvas.dispatchEvent(event);
             }
 
