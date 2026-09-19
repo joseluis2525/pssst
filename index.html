@@ -268,21 +268,21 @@
 
             <div class="controls-left">
                 <div class="pill-horizontal">
-                    <!-- data-key: Q (izquierda) y W (derecha) -->
+                    <!-- Q = izquierda, W = derecha -->
                     <div id="btn-left"  class="btn-half" data-key="q"></div>
                     <div id="btn-right" class="btn-half" data-key="w"></div>
                 </div>
-                <!-- ACCION: T (disparar spray) -->
+                <!-- T = disparar spray -->
                 <div id="btn-disp-left" class="btn-action-round" data-key="t"></div>
             </div>
 
             <div class="controls-right">
                 <div class="pill-vertical">
-                    <!-- data-key: E (arriba) y R (abajo) -->
+                    <!-- E = arriba, R = abajo -->
                     <div id="btn-up"   class="btn-half" data-key="e"></div>
                     <div id="btn-down" class="btn-half" data-key="r"></div>
                 </div>
-                <!-- ACCION: T (disparar spray) -->
+                <!-- T = disparar spray -->
                 <div id="btn-disp-right" class="btn-action-round" data-key="t"></div>
             </div>
 
@@ -306,6 +306,8 @@
                 statusEl.textContent = msg;
                 console.log('[STATUS]', msg);
             }
+
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
 
             const speccy = JSSpeccy(document.getElementById('jsspeccy'), {
                 autoStart: true,
@@ -370,6 +372,9 @@
             window.addEventListener('orientationchange', () => setTimeout(onOrientationChange, 400));
             window.addEventListener('resize', () => setTimeout(onOrientationChange, 400));
 
+            // ============================================================
+            // CARGA DE LA ROM
+            // ============================================================
             function forceLoadFile(file) {
                 if (typeof speccy.openTAPFile === 'function') {
                     try { speccy.openTAPFile(file); return; } catch(e){}
@@ -391,11 +396,14 @@
                         if (!r.ok) throw new Error('HTTP ' + r.status);
                         return r.blob();
                     })
-                    .then(blob => {
+                    .then(async blob => {
                         const file = new File([blob], 'pssst.tap');
                         forceLoadFile(file);
                         tapeLoaded = true;
-                        setStatus('✅ Cargando... espera 30-60 segundos');
+                        setStatus('✅ Cinta insertada. Escribiendo LOAD ""...');
+                        // Esperar 1.5 segundos y escribir LOAD ""
+                        await sleep(1500);
+                        await typeLoadCommand();
                     })
                     .catch(err => {
                         console.error(err);
@@ -416,13 +424,102 @@
                 }
             }, 200);
 
-            manualLoadInput.addEventListener('change', function(event) {
+            manualLoadInput.addEventListener('change', async function(event) {
                 const file = event.target.files[0];
                 if (!file) return;
                 setStatus('Insertando ' + file.name);
                 forceLoadFile(file);
                 tapeLoaded = true;
+                await sleep(1500);
+                await typeLoadCommand();
             });
+
+            // ============================================================
+            // TECLADO GENÉRICO
+            // ============================================================
+            function pressKey(key, code, keyCode, extraOpts) {
+                const canvas = getCanvas();
+                if (!canvas) return;
+                const opts = Object.assign({
+                    key: key, code: code, keyCode: keyCode, which: keyCode,
+                    bubbles: true, cancelable: true
+                }, extraOpts || {});
+
+                const down = new KeyboardEvent('keydown', opts);
+                const up = new KeyboardEvent('keyup', opts);
+
+                Object.defineProperty(down, 'keyCode', { get: () => keyCode });
+                Object.defineProperty(down, 'which', { get: () => keyCode });
+                Object.defineProperty(up, 'keyCode', { get: () => keyCode });
+                Object.defineProperty(up, 'which', { get: () => keyCode });
+
+                canvas.dispatchEvent(down);
+                document.dispatchEvent(down);
+                setTimeout(() => {
+                    canvas.dispatchEvent(up);
+                    document.dispatchEvent(up);
+                }, 60);
+            }
+
+            // Symbol Shift = Control en JSSpeccy
+            async function pressSymbolShift(letter, code, keyCode) {
+                const canvas = getCanvas();
+                if (!canvas) return;
+
+                const ssDown = new KeyboardEvent('keydown', {
+                    key: 'Control', code: 'ControlLeft', keyCode: 17, which: 17,
+                    ctrlKey: true, bubbles: true, cancelable: true
+                });
+                Object.defineProperty(ssDown, 'keyCode', { get: () => 17 });
+                Object.defineProperty(ssDown, 'which', { get: () => 17 });
+                canvas.dispatchEvent(ssDown);
+                document.dispatchEvent(ssDown);
+                await sleep(120);
+
+                pressKey(letter, code, keyCode, { ctrlKey: true });
+                await sleep(150);
+
+                const ssUp = new KeyboardEvent('keyup', {
+                    key: 'Control', code: 'ControlLeft', keyCode: 17, which: 17,
+                    ctrlKey: false, bubbles: true, cancelable: true
+                });
+                Object.defineProperty(ssUp, 'keyCode', { get: () => 17 });
+                Object.defineProperty(ssUp, 'which', { get: () => 17 });
+                canvas.dispatchEvent(ssUp);
+                document.dispatchEvent(ssUp);
+                await sleep(120);
+            }
+
+            // Escribe LOAD "" + Enter
+            async function typeLoadCommand() {
+                setStatus('⌨️ Escribiendo LOAD ""...');
+
+                const canvas = getCanvas();
+                if (!canvas) return;
+                canvas.focus();
+                await sleep(500);
+
+                // Enter primero para línea limpia
+                pressKey('Enter', 'Enter', 13);
+                await sleep(400);
+
+                // J → el BASIC lo convierte en "LOAD "
+                pressKey('j', 'KeyJ', 74);
+                await sleep(400);
+
+                // Symbol Shift + P → comilla
+                await pressSymbolShift('p', 'KeyP', 80);
+                await sleep(300);
+
+                // Symbol Shift + P → comilla (cierre)
+                await pressSymbolShift('p', 'KeyP', 80);
+                await sleep(300);
+
+                // Enter para ejecutar
+                pressKey('Enter', 'Enter', 13);
+
+                setStatus('▶ LOAD "" enviado. Espera a que cargue (~30 seg).');
+            }
 
             // ============================================================
             // MAPEO DE TECLAS DE PSSST
