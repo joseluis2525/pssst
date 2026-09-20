@@ -20,7 +20,6 @@
             width: 100vw; height: 100vh;
         }
 
-        /* ============ CABECERA ============ */
         #game-header {
             padding: 4px 6px;
             background: #111; border-bottom: 2px solid #4caf50;
@@ -37,7 +36,6 @@
         }
         .hdr-btn:active { background: #4caf50; color: #000; }
 
-        /* ============ EMULADOR ============ */
         #emulator-container {
             flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
             background: #000; overflow: hidden; min-height: 0; position: relative;
@@ -53,7 +51,6 @@
             outline: none;
         }
 
-        /* ============ GAMEPAD PORTRAIT ============ */
         #gamepad-area {
             position: relative;
             flex-shrink: 0;
@@ -141,7 +138,6 @@
         .pill-vertical   .btn-half { width: 58px; height: 58px; }
         .btn-action-round { width: 68px; height: 68px; }
 
-        /* ============ LANDSCAPE ============ */
         @media (orientation: landscape) {
 
             #game-header { display: none !important; }
@@ -250,7 +246,6 @@
             <h1>🐛 Pssst</h1>
             <div id="status">Iniciando...</div>
             <span class="hdr-btn" id="btn-retry">▶ LOAD</span>
-            <span class="hdr-btn" id="btn-enter">↵ ENTER</span>
             <label for="manual-load" class="hdr-btn">ROM</label>
             <input type="file" id="manual-load" accept=".tap" style="display:none;">
         </div>
@@ -263,25 +258,20 @@
 
             <div class="controls-left">
                 <div class="pill-horizontal">
-                    <!-- Q = izquierda, W = derecha -->
                     <div id="btn-left"  class="btn-half" data-key="q"></div>
                     <div id="btn-right" class="btn-half" data-key="w"></div>
                 </div>
-                <!-- T = disparar spray -->
                 <div id="btn-disp-left" class="btn-action-round" data-key="t"></div>
             </div>
 
             <div class="controls-right">
                 <div class="pill-vertical">
-                    <!-- E = arriba, R = abajo -->
                     <div id="btn-up"   class="btn-half" data-key="e"></div>
                     <div id="btn-down" class="btn-half" data-key="r"></div>
                 </div>
-                <!-- T = disparar spray -->
                 <div id="btn-disp-right" class="btn-action-round" data-key="t"></div>
             </div>
 
-            <!-- Botón PAUSA: Caps Shift -->
             <div id="btn-config" data-key="CapsShift"></div>
 
         </div>
@@ -295,10 +285,8 @@
             const statusEl = document.getElementById('status');
             const manualLoadInput = document.getElementById('manual-load');
             const btnRetry = document.getElementById('btn-retry');
-            const btnEnter = document.getElementById('btn-enter');
 
             let tapeLoaded = false;
-            let typing = false;
 
             function setStatus(msg) {
                 statusEl.textContent = msg;
@@ -306,12 +294,21 @@
             }
             const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+            // ============================================================
+            // CONFIGURACIÓN CLAVE: autoLoadTapes: true
+            // Esto hace que JSSpeccy cargue el .tap SOLO cuando se lo
+            // pasamos por drag&drop, sin necesidad de escribir LOAD "".
+            // Es lo que funcionó en Panama Joe.
+            // ============================================================
             const speccy = JSSpeccy(document.getElementById('jsspeccy'), {
                 autoStart: true,
+                autoLoadTapes: true,
                 sandbox: false,
                 machine: 48,
                 zoom: 1
             });
+
+            window.__speccy = speccy;
 
             function getCanvas() {
                 return document.querySelector('#jsspeccy canvas');
@@ -362,191 +359,84 @@
             window.addEventListener('resize', () => setTimeout(onOrientationChange, 400));
 
             // ============================================================
-            // CARGA DE CINTA con drag & drop simulado
+            // CARGA POR DRAG & DROP SIMULADO
             // ============================================================
-            async function loadTape(blob, filename) {
-                console.log('[TAPE] Cargando:', filename, blob.size, 'bytes');
-                try {
-                    const file = new File([blob], filename, { type: 'application/octet-stream' });
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    const dropEvent = new DragEvent('drop', {
-                        bubbles: true, cancelable: true, dataTransfer: dt
-                    });
-                    document.getElementById('jsspeccy').dispatchEvent(dropEvent);
-                    const canvas = getCanvas();
-                    if (canvas) canvas.dispatchEvent(dropEvent);
-                    document.dispatchEvent(dropEvent);
-
-                    tapeLoaded = true;
-                    setStatus('✅ Cinta insertada: ' + filename);
-                    return true;
-                } catch (err) {
-                    console.error('[TAPE ERROR]', err);
-                    setStatus('❌ Error: ' + err.message);
-                    return false;
-                }
-            }
-
-            // ============================================================
-            // TECLADO
-            // ============================================================
-            function pressKey(key, code, keyCode, extraOpts) {
-                const canvas = getCanvas();
-                if (!canvas) return;
-                const opts = Object.assign({
-                    key: key, code: code, keyCode: keyCode, which: keyCode,
-                    bubbles: true, cancelable: true
-                }, extraOpts || {});
-
-                const down = new KeyboardEvent('keydown', opts);
-                const up = new KeyboardEvent('keyup', opts);
-
-                Object.defineProperty(down, 'keyCode', { get: () => keyCode });
-                Object.defineProperty(down, 'which', { get: () => keyCode });
-                Object.defineProperty(up, 'keyCode', { get: () => keyCode });
-                Object.defineProperty(up, 'which', { get: () => keyCode });
-
-                canvas.dispatchEvent(down);
-                document.dispatchEvent(down);
-                setTimeout(() => {
-                    canvas.dispatchEvent(up);
-                    document.dispatchEvent(up);
-                }, 60);
-            }
-
-            async function pressSymbolShift(letter, code, keyCode) {
-                const canvas = getCanvas();
-                if (!canvas) return;
-                const ssDown = new KeyboardEvent('keydown', {
-                    key: 'Control', code: 'ControlLeft', keyCode: 17, which: 17,
-                    ctrlKey: true, bubbles: true, cancelable: true
+            function forceLoadFile(file) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                const dropEvent = new DragEvent('drop', {
+                    bubbles: true, cancelable: true, dataTransfer: dt
                 });
-                Object.defineProperty(ssDown, 'keyCode', { get: () => 17 });
-                Object.defineProperty(ssDown, 'which', { get: () => 17 });
-                canvas.dispatchEvent(ssDown);
-                document.dispatchEvent(ssDown);
-                await sleep(120);
-
-                pressKey(letter, code, keyCode, { ctrlKey: true });
-                await sleep(150);
-
-                const ssUp = new KeyboardEvent('keyup', {
-                    key: 'Control', code: 'ControlLeft', keyCode: 17, which: 17,
-                    ctrlKey: false, bubbles: true, cancelable: true
-                });
-                Object.defineProperty(ssUp, 'keyCode', { get: () => 17 });
-                Object.defineProperty(ssUp, 'which', { get: () => 17 });
-                canvas.dispatchEvent(ssUp);
-                document.dispatchEvent(ssUp);
-                await sleep(120);
-            }
-
-            async function typeLoadCommand() {
-                if (typing) return;
-                typing = true;
-                setStatus('⌨️ Escribiendo LOAD ""...');
-
+                document.getElementById('jsspeccy').dispatchEvent(dropEvent);
                 const canvas = getCanvas();
-                if (!canvas) { typing = false; return; }
-                canvas.focus();
-                await sleep(500);
-
-                pressKey('Enter', 'Enter', 13);
-                await sleep(400);
-                pressKey('j', 'KeyJ', 74);
-                await sleep(400);
-                await pressSymbolShift('p', 'KeyP', 80);
-                await sleep(300);
-                await pressSymbolShift('p', 'KeyP', 80);
-                await sleep(300);
-                pressKey('Enter', 'Enter', 13);
-
-                setStatus('▶ LOAD "" enviado. Espera a que cargue...');
-                typing = false;
+                if (canvas) canvas.dispatchEvent(dropEvent);
+                document.dispatchEvent(dropEvent);
             }
 
-            // ============================================================
-            // CARGA DEL JUEGO (con reset previo)
-            // ============================================================
-            async function loadGame() {
-                // 1. Resetear el emulador para limpiar memoria
-                if (typeof speccy.reset === 'function') {
-                    try {
-                        speccy.reset();
-                        console.log('[RESET] Emulador reseteado');
-                    } catch(e) { console.warn('[RESET]', e); }
-                }
-                tapeLoaded = false;
-                await sleep(1500);
-
-                // 2. Descargar el .tap
+            function autoLoadROM() {
                 setStatus('Descargando pssst.tap...');
-                try {
-                    const r = await fetch('pssst.tap?t=' + Date.now());
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
-                    const blob = await r.blob();
-                    await loadTape(blob, 'pssst.tap');
-                    await sleep(2000);
-                    await typeLoadCommand();
-                } catch (err) {
-                    console.error('[FETCH]', err);
-                    setStatus('❌ Error: ' + err.message);
-                }
+                fetch('pssst.tap?t=' + Date.now())
+                    .then(r => {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.blob();
+                    })
+                    .then(blob => {
+                        console.log('[TAPE] Blob recibido:', blob.size, 'bytes');
+                        const file = new File([blob], 'pssst.tap', { type: 'application/octet-stream' });
+                        forceLoadFile(file);
+                        tapeLoaded = true;
+                        setStatus('✅ Cargando auto... espera 30-60 seg');
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        setStatus('❌ Error: ' + err.message);
+                    });
             }
 
-            // Arrancar cuando el canvas esté listo
             let tries = 0;
-            const interval = setInterval(() => {
+            const waitCanvas = setInterval(() => {
                 tries++;
                 if (getCanvas()) {
-                    clearInterval(interval);
+                    clearInterval(waitCanvas);
                     console.log('[OK] Canvas listo tras ' + tries + ' intentos');
-                    setTimeout(() => loadGame(), 800);
+                    setTimeout(autoLoadROM, 800);
                 }
                 if (tries > 50) {
-                    clearInterval(interval);
+                    clearInterval(waitCanvas);
                     setStatus('⚠️ Canvas no detectado.');
                 }
             }, 200);
 
-            // ============================================================
-            // BOTONES MANUALES
-            // ============================================================
-            manualLoadInput.addEventListener('change', async function(event) {
+            manualLoadInput.addEventListener('change', function(event) {
                 const file = event.target.files[0];
                 if (!file) return;
-                setStatus('Insertando: ' + file.name);
-                const blob = file.slice(0, file.size, 'application/octet-stream');
-                await loadTape(blob, file.name);
-                await sleep(2000);
-                await typeLoadCommand();
+                setStatus('Insertando ' + file.name);
+                forceLoadFile(file);
+                tapeLoaded = true;
             });
 
-            // Botón "Reintentar LOAD"
-            btnRetry.addEventListener('click', async function(e) {
+            // ============================================================
+            // BOTÓN "▶ LOAD" — RE-INSERCIÓN DE CINTA MANUAL
+            // Vuelve a hacer el drop para forzar la carga automática
+            // ============================================================
+            btnRetry.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                if (typing) {
-                    setStatus('⏳ Ya escribiendo, espera...');
-                    return;
+                if (tapeLoaded) {
+                    setStatus('Re-insertando cinta...');
+                    // Re-hacer fetch y drop
+                    fetch('pssst.tap?t=' + Date.now())
+                        .then(r => r.blob())
+                        .then(blob => {
+                            const file = new File([blob], 'pssst.tap', { type: 'application/octet-stream' });
+                            forceLoadFile(file);
+                            setStatus('✅ Cinta re-insertada. Espera carga...');
+                        })
+                        .catch(err => setStatus('❌ Error: ' + err.message));
+                } else {
+                    setStatus('Cargando cinta por primera vez...');
+                    autoLoadROM();
                 }
-                if (!tapeLoaded) {
-                    setStatus('⚠️ Cinta no cargada aún. Espera o usa ROM.');
-                    return;
-                }
-                await typeLoadCommand();
-            });
-
-            // Botón "Enter" manual
-            btnEnter.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const canvas = getCanvas();
-                if (!canvas) return;
-                canvas.focus();
-                pressKey('Enter', 'Enter', 13);
-                setStatus('↵ Enter enviado');
             });
 
             // ============================================================
