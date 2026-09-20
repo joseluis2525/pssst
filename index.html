@@ -22,17 +22,17 @@
 
         /* ============ CABECERA ============ */
         #game-header {
-            text-align: center; padding: 4px 8px;
+            padding: 4px 6px;
             background: #111; border-bottom: 2px solid #4caf50;
-            display: flex; align-items: center; gap: 5px;
+            display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
             flex-shrink: 0;
             z-index: 100;
         }
-        #game-header h1 { font-size: 0.9em; color: #4caf50; margin: 0; white-space: nowrap; }
-        #status { font-size: 0.6em; color: #aaa; flex: 1; text-align: center; }
+        #game-header h1 { font-size: 0.85em; color: #4caf50; margin: 0; white-space: nowrap; }
+        #status { font-size: 0.55em; color: #aaa; flex: 1; text-align: center; min-width: 60px; }
         .hdr-btn {
             background: #333; border: 1px solid #4caf50; border-radius: 5px;
-            color: #4caf50; padding: 5px 10px; font-size: 0.7em; cursor: pointer;
+            color: #4caf50; padding: 4px 8px; font-size: 0.65em; cursor: pointer;
             user-select: none; flex-shrink: 0; white-space: nowrap;
         }
         .hdr-btn:active { background: #4caf50; color: #000; }
@@ -137,7 +137,6 @@
         }
         #btn-config.active { background-image: url('cuatroaction.png') !important; }
 
-        /* ============ TAMAÑOS PORTRAIT ============ */
         .pill-horizontal .btn-half { width: 58px; height: 58px; }
         .pill-vertical   .btn-half { width: 58px; height: 58px; }
         .btn-action-round { width: 68px; height: 68px; }
@@ -149,8 +148,7 @@
 
             #emulator-container {
                 position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
+                top: 0 !important; left: 0 !important;
                 width: 100vw !important;
                 height: 100dvh !important;
                 z-index: 1 !important;
@@ -180,8 +178,7 @@
 
             #gamepad-area {
                 position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
+                top: 0 !important; left: 0 !important;
                 width: 100vw !important;
                 height: 100dvh !important;
                 background: transparent !important;
@@ -194,9 +191,7 @@
             .controls-left {
                 position: fixed !important;
                 left: 1.5vw !important;
-                top: 0 !important;
-                bottom: 0 !important;
-                width: auto !important;
+                top: 0 !important; bottom: 0 !important;
                 height: 100dvh !important;
                 display: flex !important;
                 flex-direction: column !important;
@@ -211,9 +206,7 @@
                 position: fixed !important;
                 right: 1.5vw !important;
                 left: auto !important;
-                top: 0 !important;
-                bottom: 0 !important;
-                width: auto !important;
+                top: 0 !important; bottom: 0 !important;
                 height: 100dvh !important;
                 display: flex !important;
                 flex-direction: column !important;
@@ -256,6 +249,8 @@
         <div id="game-header">
             <h1>🐛 Pssst</h1>
             <div id="status">Iniciando...</div>
+            <span class="hdr-btn" id="btn-retry">▶ LOAD</span>
+            <span class="hdr-btn" id="btn-enter">↵ ENTER</span>
             <label for="manual-load" class="hdr-btn">ROM</label>
             <input type="file" id="manual-load" accept=".tap" style="display:none;">
         </div>
@@ -299,25 +294,24 @@
         document.addEventListener('DOMContentLoaded', () => {
             const statusEl = document.getElementById('status');
             const manualLoadInput = document.getElementById('manual-load');
+            const btnRetry = document.getElementById('btn-retry');
+            const btnEnter = document.getElementById('btn-enter');
 
             let tapeLoaded = false;
+            let typing = false;
 
             function setStatus(msg) {
                 statusEl.textContent = msg;
                 console.log('[STATUS]', msg);
             }
-
             const sleep = ms => new Promise(r => setTimeout(r, ms));
 
             const speccy = JSSpeccy(document.getElementById('jsspeccy'), {
                 autoStart: true,
-                autoLoadTapes: true,
                 sandbox: false,
                 machine: 48,
                 zoom: 1
             });
-
-            window.__speccy = speccy;
 
             function getCanvas() {
                 return document.querySelector('#jsspeccy canvas');
@@ -350,16 +344,11 @@
 
             function onOrientationChange() {
                 const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-                console.log('[ORIENT]', isLandscape ? 'landscape' : 'portrait');
-
                 if (isLandscape) {
                     if (speccy && typeof speccy.enterFullscreen === 'function') {
                         try { speccy.enterFullscreen(); } catch(e) {}
                     }
-                    setTimeout(() => {
-                        hideEmulatorUI();
-                        forceReflow();
-                    }, 200);
+                    setTimeout(() => { hideEmulatorUI(); forceReflow(); }, 200);
                     setTimeout(hideEmulatorUI, 600);
                 } else {
                     if (speccy && typeof speccy.exitFullscreen === 'function') {
@@ -373,69 +362,34 @@
             window.addEventListener('resize', () => setTimeout(onOrientationChange, 400));
 
             // ============================================================
-            // CARGA DE LA ROM
+            // CARGA DE CINTA con drag & drop simulado
             // ============================================================
-            function forceLoadFile(file) {
-                if (typeof speccy.openTAPFile === 'function') {
-                    try { speccy.openTAPFile(file); return; } catch(e){}
-                }
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                const dropEvent = new DragEvent('drop', {
-                    bubbles: true, cancelable: true, dataTransfer: dt
-                });
-                document.getElementById('jsspeccy').dispatchEvent(dropEvent);
-                const canvas = getCanvas();
-                if (canvas) canvas.dispatchEvent(dropEvent);
-            }
-
-            function autoLoadROM() {
-                setStatus('Cargando Pssst...');
-                fetch('pssst.tap?t=' + Date.now())
-                    .then(r => {
-                        if (!r.ok) throw new Error('HTTP ' + r.status);
-                        return r.blob();
-                    })
-                    .then(async blob => {
-                        const file = new File([blob], 'pssst.tap');
-                        forceLoadFile(file);
-                        tapeLoaded = true;
-                        setStatus('✅ Cinta insertada. Escribiendo LOAD ""...');
-                        // Esperar 1.5 segundos y escribir LOAD ""
-                        await sleep(1500);
-                        await typeLoadCommand();
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        setStatus('❌ Error. Usa ROM manual.');
+            async function loadTape(blob, filename) {
+                console.log('[TAPE] Cargando:', filename, blob.size, 'bytes');
+                try {
+                    const file = new File([blob], filename, { type: 'application/octet-stream' });
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    const dropEvent = new DragEvent('drop', {
+                        bubbles: true, cancelable: true, dataTransfer: dt
                     });
+                    document.getElementById('jsspeccy').dispatchEvent(dropEvent);
+                    const canvas = getCanvas();
+                    if (canvas) canvas.dispatchEvent(dropEvent);
+                    document.dispatchEvent(dropEvent);
+
+                    tapeLoaded = true;
+                    setStatus('✅ Cinta insertada: ' + filename);
+                    return true;
+                } catch (err) {
+                    console.error('[TAPE ERROR]', err);
+                    setStatus('❌ Error: ' + err.message);
+                    return false;
+                }
             }
 
-            let tries = 0;
-            const waitCanvas = setInterval(() => {
-                tries++;
-                if (getCanvas()) {
-                    clearInterval(waitCanvas);
-                    setTimeout(autoLoadROM, 500);
-                }
-                if (tries > 50) {
-                    clearInterval(waitCanvas);
-                    setStatus('⚠️ Canvas no detectado.');
-                }
-            }, 200);
-
-            manualLoadInput.addEventListener('change', async function(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                setStatus('Insertando ' + file.name);
-                forceLoadFile(file);
-                tapeLoaded = true;
-                await sleep(1500);
-                await typeLoadCommand();
-            });
-
             // ============================================================
-            // TECLADO GENÉRICO
+            // TECLADO
             // ============================================================
             function pressKey(key, code, keyCode, extraOpts) {
                 const canvas = getCanvas();
@@ -461,11 +415,9 @@
                 }, 60);
             }
 
-            // Symbol Shift = Control en JSSpeccy
             async function pressSymbolShift(letter, code, keyCode) {
                 const canvas = getCanvas();
                 if (!canvas) return;
-
                 const ssDown = new KeyboardEvent('keydown', {
                     key: 'Control', code: 'ControlLeft', keyCode: 17, which: 17,
                     ctrlKey: true, bubbles: true, cancelable: true
@@ -490,36 +442,112 @@
                 await sleep(120);
             }
 
-            // Escribe LOAD "" + Enter
             async function typeLoadCommand() {
+                if (typing) return;
+                typing = true;
                 setStatus('⌨️ Escribiendo LOAD ""...');
 
                 const canvas = getCanvas();
-                if (!canvas) return;
+                if (!canvas) { typing = false; return; }
                 canvas.focus();
                 await sleep(500);
 
-                // Enter primero para línea limpia
                 pressKey('Enter', 'Enter', 13);
                 await sleep(400);
-
-                // J → el BASIC lo convierte en "LOAD "
                 pressKey('j', 'KeyJ', 74);
                 await sleep(400);
-
-                // Symbol Shift + P → comilla
                 await pressSymbolShift('p', 'KeyP', 80);
                 await sleep(300);
-
-                // Symbol Shift + P → comilla (cierre)
                 await pressSymbolShift('p', 'KeyP', 80);
                 await sleep(300);
-
-                // Enter para ejecutar
                 pressKey('Enter', 'Enter', 13);
 
-                setStatus('▶ LOAD "" enviado. Espera a que cargue (~30 seg).');
+                setStatus('▶ LOAD "" enviado. Espera a que cargue...');
+                typing = false;
             }
+
+            // ============================================================
+            // CARGA DEL JUEGO (con reset previo)
+            // ============================================================
+            async function loadGame() {
+                // 1. Resetear el emulador para limpiar memoria
+                if (typeof speccy.reset === 'function') {
+                    try {
+                        speccy.reset();
+                        console.log('[RESET] Emulador reseteado');
+                    } catch(e) { console.warn('[RESET]', e); }
+                }
+                tapeLoaded = false;
+                await sleep(1500);
+
+                // 2. Descargar el .tap
+                setStatus('Descargando pssst.tap...');
+                try {
+                    const r = await fetch('pssst.tap?t=' + Date.now());
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    const blob = await r.blob();
+                    await loadTape(blob, 'pssst.tap');
+                    await sleep(2000);
+                    await typeLoadCommand();
+                } catch (err) {
+                    console.error('[FETCH]', err);
+                    setStatus('❌ Error: ' + err.message);
+                }
+            }
+
+            // Arrancar cuando el canvas esté listo
+            let tries = 0;
+            const interval = setInterval(() => {
+                tries++;
+                if (getCanvas()) {
+                    clearInterval(interval);
+                    console.log('[OK] Canvas listo tras ' + tries + ' intentos');
+                    setTimeout(() => loadGame(), 800);
+                }
+                if (tries > 50) {
+                    clearInterval(interval);
+                    setStatus('⚠️ Canvas no detectado.');
+                }
+            }, 200);
+
+            // ============================================================
+            // BOTONES MANUALES
+            // ============================================================
+            manualLoadInput.addEventListener('change', async function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                setStatus('Insertando: ' + file.name);
+                const blob = file.slice(0, file.size, 'application/octet-stream');
+                await loadTape(blob, file.name);
+                await sleep(2000);
+                await typeLoadCommand();
+            });
+
+            // Botón "Reintentar LOAD"
+            btnRetry.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typing) {
+                    setStatus('⏳ Ya escribiendo, espera...');
+                    return;
+                }
+                if (!tapeLoaded) {
+                    setStatus('⚠️ Cinta no cargada aún. Espera o usa ROM.');
+                    return;
+                }
+                await typeLoadCommand();
+            });
+
+            // Botón "Enter" manual
+            btnEnter.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const canvas = getCanvas();
+                if (!canvas) return;
+                canvas.focus();
+                pressKey('Enter', 'Enter', 13);
+                setStatus('↵ Enter enviado');
+            });
 
             // ============================================================
             // MAPEO DE TECLAS DE PSSST
