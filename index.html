@@ -20,22 +20,24 @@
             width: 100vw; height: 100vh;
         }
 
+        /* ============ CABECERA ============ */
         #game-header {
-            padding: 4px 6px;
+            text-align: center; padding: 4px 8px;
             background: #111; border-bottom: 2px solid #4caf50;
-            display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+            display: flex; align-items: center; gap: 5px;
             flex-shrink: 0;
             z-index: 100;
         }
-        #game-header h1 { font-size: 0.85em; color: #4caf50; margin: 0; white-space: nowrap; }
-        #status { font-size: 0.55em; color: #aaa; flex: 1; text-align: center; min-width: 60px; }
+        #game-header h1 { font-size: 0.9em; color: #4caf50; margin: 0; white-space: nowrap; }
+        #status { font-size: 0.6em; color: #aaa; flex: 1; text-align: center; }
         .hdr-btn {
             background: #333; border: 1px solid #4caf50; border-radius: 5px;
-            color: #4caf50; padding: 4px 8px; font-size: 0.65em; cursor: pointer;
+            color: #4caf50; padding: 5px 10px; font-size: 0.7em; cursor: pointer;
             user-select: none; flex-shrink: 0; white-space: nowrap;
         }
         .hdr-btn:active { background: #4caf50; color: #000; }
 
+        /* ============ EMULADOR ============ */
         #emulator-container {
             flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
             background: #000; overflow: hidden; min-height: 0; position: relative;
@@ -51,6 +53,7 @@
             outline: none;
         }
 
+        /* ============ GAMEPAD PORTRAIT ============ */
         #gamepad-area {
             position: relative;
             flex-shrink: 0;
@@ -134,10 +137,12 @@
         }
         #btn-config.active { background-image: url('cuatroaction.png') !important; }
 
+        /* ============ TAMAÑOS PORTRAIT ============ */
         .pill-horizontal .btn-half { width: 58px; height: 58px; }
         .pill-vertical   .btn-half { width: 58px; height: 58px; }
         .btn-action-round { width: 68px; height: 68px; }
 
+        /* ============ LANDSCAPE ============ */
         @media (orientation: landscape) {
 
             #game-header { display: none !important; }
@@ -245,7 +250,6 @@
         <div id="game-header">
             <h1>🐛 Pssst</h1>
             <div id="status">Iniciando...</div>
-            <span class="hdr-btn" id="btn-retry">▶ LOAD</span>
             <label for="manual-load" class="hdr-btn">ROM</label>
             <input type="file" id="manual-load" accept=".tap" style="display:none;">
         </div>
@@ -258,20 +262,25 @@
 
             <div class="controls-left">
                 <div class="pill-horizontal">
-                    <div id="btn-left"  class="btn-half" data-key="q"></div>
-                    <div id="btn-right" class="btn-half" data-key="w"></div>
+                    <!-- O = izquierda, P = derecha -->
+                    <div id="btn-left"  class="btn-half" data-key="o"></div>
+                    <div id="btn-right" class="btn-half" data-key="p"></div>
                 </div>
-                <div id="btn-disp-left" class="btn-action-round" data-key="t"></div>
+                <!-- Space = disparar -->
+                <div id="btn-disp-left" class="btn-action-round" data-key="Space"></div>
             </div>
 
             <div class="controls-right">
                 <div class="pill-vertical">
-                    <div id="btn-up"   class="btn-half" data-key="e"></div>
-                    <div id="btn-down" class="btn-half" data-key="r"></div>
+                    <!-- Q = arriba, A = abajo -->
+                    <div id="btn-up"   class="btn-half" data-key="q"></div>
+                    <div id="btn-down" class="btn-half" data-key="a"></div>
                 </div>
-                <div id="btn-disp-right" class="btn-action-round" data-key="t"></div>
+                <!-- Space = disparar -->
+                <div id="btn-disp-right" class="btn-action-round" data-key="Space"></div>
             </div>
 
+            <!-- Botón PAUSA: Caps Shift -->
             <div id="btn-config" data-key="CapsShift"></div>
 
         </div>
@@ -284,7 +293,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const statusEl = document.getElementById('status');
             const manualLoadInput = document.getElementById('manual-load');
-            const btnRetry = document.getElementById('btn-retry');
 
             let tapeLoaded = false;
 
@@ -292,14 +300,7 @@
                 statusEl.textContent = msg;
                 console.log('[STATUS]', msg);
             }
-            const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-            // ============================================================
-            // CONFIGURACIÓN CLAVE: autoLoadTapes: true
-            // Esto hace que JSSpeccy cargue el .tap SOLO cuando se lo
-            // pasamos por drag&drop, sin necesidad de escribir LOAD "".
-            // Es lo que funcionó en Panama Joe.
-            // ============================================================
             const speccy = JSSpeccy(document.getElementById('jsspeccy'), {
                 autoStart: true,
                 autoLoadTapes: true,
@@ -358,9 +359,6 @@
             window.addEventListener('orientationchange', () => setTimeout(onOrientationChange, 400));
             window.addEventListener('resize', () => setTimeout(onOrientationChange, 400));
 
-            // ============================================================
-            // CARGA POR DRAG & DROP SIMULADO
-            // ============================================================
             function forceLoadFile(file) {
                 const dt = new DataTransfer();
                 dt.items.add(file);
@@ -385,7 +383,7 @@
                         const file = new File([blob], 'pssst.tap', { type: 'application/octet-stream' });
                         forceLoadFile(file);
                         tapeLoaded = true;
-                        setStatus('✅ Cargando auto... espera 30-60 seg');
+                        setStatus('✅ Cargando... espera 30-60 seg');
                     })
                     .catch(err => {
                         console.error(err);
@@ -398,7 +396,6 @@
                 tries++;
                 if (getCanvas()) {
                     clearInterval(waitCanvas);
-                    console.log('[OK] Canvas listo tras ' + tries + ' intentos');
                     setTimeout(autoLoadROM, 800);
                 }
                 if (tries > 50) {
@@ -416,43 +413,17 @@
             });
 
             // ============================================================
-            // BOTÓN "▶ LOAD" — RE-INSERCIÓN DE CINTA MANUAL
-            // Vuelve a hacer el drop para forzar la carga automática
-            // ============================================================
-            btnRetry.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (tapeLoaded) {
-                    setStatus('Re-insertando cinta...');
-                    // Re-hacer fetch y drop
-                    fetch('pssst.tap?t=' + Date.now())
-                        .then(r => r.blob())
-                        .then(blob => {
-                            const file = new File([blob], 'pssst.tap', { type: 'application/octet-stream' });
-                            forceLoadFile(file);
-                            setStatus('✅ Cinta re-insertada. Espera carga...');
-                        })
-                        .catch(err => setStatus('❌ Error: ' + err.message));
-                } else {
-                    setStatus('Cargando cinta por primera vez...');
-                    autoLoadROM();
-                }
-            });
-
-            // ============================================================
-            // MAPEO DE TECLAS DE PSSST
-            // Q = izquierda, W = derecha, E = arriba, R = abajo, T = disparar
-            // Caps Shift = pausa
+            // MAPEO DE TECLAS DE PSSST (según viva-games.ru)
+            // O = izquierda, P = derecha, Q = arriba, A = abajo
+            // Space = disparar, Caps Shift = pausa
             // ============================================================
             const keyMap = {
+                'o': { key: 'o', code: 'KeyO', keyCode: 79 },
+                'p': { key: 'p', code: 'KeyP', keyCode: 80 },
                 'q': { key: 'q', code: 'KeyQ', keyCode: 81 },
-                'w': { key: 'w', code: 'KeyW', keyCode: 87 },
-                'e': { key: 'e', code: 'KeyE', keyCode: 69 },
-                'r': { key: 'r', code: 'KeyR', keyCode: 82 },
-                't': { key: 't', code: 'KeyT', keyCode: 84 },
-                'CapsShift': { key: 'Shift', code: 'ShiftLeft', keyCode: 16 },
-                'Enter': { key: 'Enter', code: 'Enter', keyCode: 13 },
-                'Space': { key: ' ', code: 'Space', keyCode: 32 }
+                'a': { key: 'a', code: 'KeyA', keyCode: 65 },
+                'Space': { key: ' ', code: 'Space', keyCode: 32 },
+                'CapsShift': { key: 'Shift', code: 'ShiftLeft', keyCode: 16 }
             };
 
             function sendKey(keyName, isDown) {
